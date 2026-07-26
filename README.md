@@ -163,7 +163,7 @@ detected chain and protocol type, keeping the context window lean.
 | Category | File | Patterns |
 |----------|------|----------|
 | Chain-agnostic | `common-move.md` | Access control, arithmetic, resource safety, logic, input validation, cross-module, upgradeability, build/test analysis |
-| Sui-specific | `sui-patterns.md` | SUI-01 to SUI-45 |
+| Sui-specific | `sui-patterns.md` | SUI-01 to SUI-46 |
 | Aptos-specific | `aptos-patterns.md` | APT-01 to APT-25 |
 | DeFi cross-cutting | `defi-vectors.md` | DEFI-01 to DEFI-10 |
 | Staking & yield | `defi/defi-staking.md` | DEFI-11 to DEFI-16, DEFI-88 |
@@ -184,7 +184,7 @@ move-auditor/
 ├── SKILL.md                          # Orchestrator — 8-phase workflow, coverage routing
 │
 ├── common-move.md                    # Chain-agnostic checks + verification checklist
-├── sui-patterns.md                   # Sui-specific patterns (SUI-01 to SUI-45)
+├── sui-patterns.md                   # Sui-specific patterns (SUI-01 to SUI-46)
 ├── aptos-patterns.md                 # Aptos-specific patterns (APT-01 to APT-25)
 │
 ├── checklist-router.md               # Signal-based coverage planner & file router

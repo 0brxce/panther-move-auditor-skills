@@ -1618,7 +1618,143 @@ structure (`Table`, `Bag`, `TableVec`) so entries live in separate object slots 
 inflate the parent. For pure enumeration needs, prefer events + off-chain indexing.
 
 **Cross-ref:** SUI-30 (VecMap/VecSet O(n) gas — the gas-side twin of this size-side bug),
-SUI-15 (unbounded iteration), SUI-25 (dynamic-field cleanup on delete).
+SUI-15 (unbounded iteration), SUI-25 (dynamic-field cleanup on delete),
+SUI-46 (per-transaction dynamic-field child cache ceiling).
+
+---
+
+## SUI-46 — Per-Transaction Dynamic-Field Child-Object Cache Ceiling
+
+**Description:** The Sui **object runtime** caches every *distinct* dynamic-field child
+object loaded during a transaction, and enforces a hard protocol-config cap:
+`object_runtime_max_num_cached_objects` — **1,000 entries**. On the 1,001st distinct child,
+execution aborts inside `0x2::dynamic_field::borrow_child_object` with
+`MEMORY_LIMIT_EXCEEDED` (sub-status 5); a dry-run's `executionErrorSource` states
+`Object runtime cached objects limit (1000 entries) reached`.
+
+Every entry of `Table`, `Bag`, `ObjectTable`, `ObjectBag`, `TableVec`, and every explicit
+`dynamic_field` / `dynamic_object_field` is a **separate child object**. Loading one costs
+one cache slot. So an operation that walks a `Table` of N entries consumes ~N slots.
+
+Three properties make this class easy to miss and hard to recover from:
+
+1. **The cache is cumulative across the whole transaction, and is NOT reset between PTB
+   commands.** Two commands that each touch 600 distinct children abort at command 2 even
+   though neither alone is near the cap. **The budget is the SUM over every command in the
+   composed transaction, not the max of any single command or function.**
+2. **It is not a gas limit and cannot be bought out.** The abort can fire while the
+   transaction sits at a *fraction* of the computation budget (single-digit-percent to
+   ~50% is typical). *Compute headroom is therefore not evidence of safety* — an
+   analysis that concludes "we are well under the gas cap, so the batch operation scales"
+   is measuring the wrong wall. Raising `gasBudget` does nothing.
+3. **`sui move test` does NOT enforce it.** The Move unit-test VM omits this
+   execution-layer check — a unit test can load 1,000+ children and pass. A green test
+   suite is *not* evidence that the operation fits. Reproduction requires a real node
+   (localnet/devnet dry-run or execution).
+
+The driver is the count of **distinct child keys touched**, which is frequently *not* the
+count of users/orders/positions. Aggregating structures (one node per distinct key,
+bucket, boundary, tier, or interval, with many contributors folded into that one node)
+mean the child count tracks *distinct keys*, independent of participant count. Conversely,
+paged structures (`ceil(items / page_size)`) contribute a second, smaller term. Model
+both.
+
+**Pattern:**
+```move
+// VULNERABLE — one atomic settlement PTB fans out over every registered market,
+// and each pass walks that market's Table node-by-node.
+public fun settle_one<T>(reg: &mut Registry, key: ID, _c: &Clock) {
+    let book = table::borrow_mut(&mut reg.books, key);   // 1 child
+    let mut i = 0;
+    while (i < book.node_count) {
+        let node = table::borrow(&book.nodes, i);        // +1 child EACH iteration
+        // ... accumulate ...
+        i = i + 1;
+    };
+}
+// Caller composes:  begin(reg) -> settle_one(k1) -> settle_one(k2) -> ... -> finish(reg)
+// Each settle_one is a separate PTB command, but the child cache carries across them.
+// Two books of ~590 nodes each = 1,180 distinct children -> abort at MEMORY_LIMIT_EXCEEDED
+// on the SECOND command, even though each book alone would have fit.
+// Consequence: the whole settlement is atomic, so nothing settles. Permanent liveness loss
+// once aggregate key count crosses the ceiling, and it only grows.
+
+// SAFE — resumable pagination: bounded child budget per transaction, cursor persisted.
+public fun settle_step<T>(reg: &mut Registry, key: ID, max_nodes: u64, _c: &Clock) {
+    let book = table::borrow_mut(&mut reg.books, key);
+    let end = math::min(book.cursor + max_nodes, book.node_count);
+    while (book.cursor < end) {
+        let node = table::borrow(&book.nodes, book.cursor);
+        // ... accumulate into a persisted partial-result field ...
+        book.cursor = book.cursor + 1;
+    };
+    if (book.cursor == book.node_count) { book.state = STATE_DONE; };
+    // finish() asserts every book reached STATE_DONE before the result is consumed.
+}
+// Child budget per tx is now `max_nodes`, a constant the protocol controls — not a function
+// of how large the protocol has grown.
+```
+
+**Check:**
+1. Identify every **atomic multi-entity operation**: settlement, flush, sweep, epoch roll,
+   global re-index, mass liquidation, migration, "close all", any keeper/cron entry point,
+   and any PTB the protocol's own client composes as one transaction. These are the
+   candidates — a single-user `deposit` is not.
+2. For each, build an explicit **child-object budget model**. Count one slot per *distinct*
+   `table::borrow`/`borrow_mut`, `bag::borrow`, `object_table::borrow`, `table_vec` index,
+   `dynamic_field::borrow`/`borrow_mut`, and `dynamic_object_field::*`, including every
+   iteration of every loop that walks a collection. Re-touching the *same* key later in the
+   transaction is free (it is already cached) — only distinct keys count.
+3. **Sum across ALL commands of the composed transaction, not per function.** Read the
+   protocol's own SDK/keeper/client code to learn how commands are actually batched. A
+   per-function analysis will silently understate the true count.
+4. Express the result as a capacity law and compare to 1,000, e.g.
+   `sum_over_entities(distinct_keys + ceil(items / page_size) + fixed_children) < 1000`.
+   State which term dominates.
+5. Ask **who grows the dominant term, and is it bounded?** If a permissionless or low-gated
+   path can mint a *new distinct key* (new tick/boundary/bucket/tier/market/position slot)
+   cheaply, an attacker can inflate the aggregate past the ceiling for a few cents of gas
+   and permanently brick the atomic operation — a griefing DoS, not merely an organic
+   scaling limit. Growth that is purely organic is still a finding (a time bomb), but the
+   attacker-controlled case is strictly more severe.
+6. **Recoverability question (decides severity):** if the operation aborts, can it be
+   re-run in smaller pieces without a code change? If the design requires all-or-nothing
+   atomicity (a global proof/valuation/settlement that must observe every entity in one
+   transaction), the answer is no and the protocol is **permanently stuck** — nothing can
+   settle, and the child count only grows. If per-entity retry or an existing cursor makes
+   it resumable, impact is bounded.
+7. **Do not accept unit tests or gas measurements as evidence of safety.** Verify with a
+   node-level dry-run (`sui client dry-run` / `dryRunTransactionBlock`) at *projected*
+   scale, and read `executionErrorSource` on failure. Absence of the abort in `sui move
+   test` proves nothing about this class.
+8. Also check the sibling per-transaction object-runtime caps while modelling — new,
+   transferred, and deleted Move object IDs are each capped (2,048 by default), and total
+   transaction size / input object count are likewise bounded. Same failure shape: a hard
+   protocol constant, unrelated to gas.
+
+**Severity:**
+- **Critical/High** — the over-budget transaction is liveness-critical and atomic
+  (settlement, valuation, redemption gate, epoch roll) with no resumable path, and the
+  dominant term grows with normal use or is attacker-inflatable. Funds become unredeemable
+  or the protocol cannot advance state.
+- **Medium** — the operation is important but an admin can re-run it in smaller batches, or
+  growth is admin-gated only.
+- **Low/Info** — child count is hard-capped by design well under the ceiling, or the
+  operation is per-user and trivially retryable.
+
+**Remediation:** Make the operation **resumable**: persist a cursor plus partial results and
+process a bounded, constant `max_children_per_tx` per transaction, with a terminal check that
+every entity was covered before the result is consumed. Where atomicity is genuinely
+required, gate consumption on a completion flag rather than on single-transaction execution.
+Structurally, reduce distinct children by packing many logical entries per child object
+(page/bucket N entries into one node) so child count grows as `n / page_size` rather than
+`n`. Enforce an explicit protocol-level cap on the number of distinct keys per entity and,
+critically, on the **aggregate across all entities the atomic operation must visit** — a
+per-entity cap alone does not bound a cumulative transaction.
+
+**Cross-ref:** SUI-45 (object *byte-size* cap — different hard limit, same "not gas" shape),
+SUI-15 / SUI-30 (gas-bound iteration — the limit callers *can* raise), SUI-28 (PTB
+composition changes per-transaction accounting), SUI-25 (dynamic-field lifecycle).
 
 ---
 
@@ -1669,3 +1805,4 @@ SUI-15 (unbounded iteration), SUI-25 (dynamic-field cleanup on delete).
 - [ ] No `tx_context::digest()`, `uid_to_bytes`, `epoch()`, or `epoch_timestamp_ms()` used as randomness — use `sui::random::Random` (SUI-43)
 - [ ] No `swap_remove` on index-ordered data structures — only safe for unordered bags/sets (SUI-44)
 - [ ] No unbounded inline collections (`vector`/`VecMap`/`VecSet`) in `has key` structs grown by permissionless paths — they inflate the object toward `max_move_object_size` (~256KB) and brick all writes; use `Table`/`Bag`/`TableVec` or events instead (SUI-45)
+- [ ] Every atomic multi-entity operation (settlement, flush, sweep, epoch roll, mass liquidation, migration, keeper PTB) has a distinct-dynamic-field-child budget summed **across all PTB commands** and proven `< 1,000` (`object_runtime_max_num_cached_objects`); the cache does not reset per command, gas headroom is not evidence, and `sui move test` does not enforce the limit — verify by node dry-run (SUI-46)

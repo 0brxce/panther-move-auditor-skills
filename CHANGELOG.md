@@ -11,6 +11,50 @@ Each release is tagged as `move-auditor@X.Y.Z`.
 
 ---
 
+## [3.12.0] — 2026-07-26
+
+### Per-transaction dynamic-field child-object cache ceiling (SUI-46 added)
+
+Adds detection for a Sui hard-limit DoS class the skill had no coverage for: the object
+runtime caches every *distinct* dynamic-field child object loaded in a transaction and
+caps it at `object_runtime_max_num_cached_objects` = **1,000**. The 1,001st distinct child
+aborts with `MEMORY_LIMIT_EXCEEDED` (sub-status 5) inside
+`0x2::dynamic_field::borrow_child_object`.
+
+Three properties make this class systematically missed, and each is now an explicit
+directive rather than a note:
+
+1. **The cache is cumulative across PTB commands** — it does not reset per command. Two
+   commands touching 600 distinct children each abort at command 2. The audit budget must
+   be the **sum over every command of the composed transaction**, so a per-function
+   analysis structurally understates it. Auditors are told to read the protocol's own
+   SDK/keeper code to learn how commands are actually batched.
+2. **It is not a gas limit.** The abort can fire at a small fraction of the computation
+   budget, so "we are far under the gas cap" is measuring the wrong wall and is explicitly
+   rejected as evidence of safety. `gasBudget` cannot buy past it.
+3. **`sui move test` does not enforce it** — the Move unit-test VM omits the
+   execution-layer check, so a test can load 1,000+ children and pass. A green suite is
+   explicitly rejected as evidence; verification requires a node dry-run at *projected*
+   scale, reading `executionErrorSource`.
+
+Distinct from existing coverage: SUI-45 is the object *byte-size* cap, SUI-15/SUI-30 are
+*gas*-bound iteration (a limit the caller can raise). SUI-46 is a per-transaction protocol
+constant on child-object count.
+
+**Changes:**
+- `sui-patterns.md` — new SUI-46 with capacity-law modelling, the driver-identification
+  step (distinct *keys* touched, which for aggregating structures is independent of
+  user/order count; plus the `ceil(items / page_size)` paging term), permissionless-key-
+  growth griefing angle, a recoverability question that decides severity, sibling
+  object-runtime caps to model alongside, and resumable-cursor remediation
+- `sui-patterns.md` — checklist item added; SUI-45 cross-ref updated
+- `checklist-router.md` — new feature-flag row (collection loop reachable from an atomic
+  multi-entity operation → mandatory SUI-46 review) and a new escalation rule with the
+  5-step ritual
+- `SKILL.md`, `README.md` — Sui range bumped to SUI-01–SUI-46; skill version 3.12.0
+
+---
+
 ## [3.11.1] — 2026-06-07
 
 ### Duplicate DEFI ID collisions resolved + DEFI-91/92 precision guards + registration sync
