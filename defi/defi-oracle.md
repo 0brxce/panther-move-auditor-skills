@@ -1,4 +1,4 @@
-# DeFi Oracle Vulnerability Patterns (DEFI-17 to DEFI-24)
+# DeFi Oracle Vulnerability Patterns (DEFI-17 to DEFI-24, DEFI-95)
 
 Oracle integrations are a critical attack surface in Move DeFi protocols.
 Pyth and Switchboard are the primary providers on Sui and Aptos.
@@ -315,6 +315,126 @@ public fun unpause(state: &mut PriceState, _admin: &AdminCap) { state.is_paused 
 
 ---
 
+## DEFI-95 — Same-Transaction Oracle Snapshot Inconsistency
+
+**Description:** A protocol may update or refresh a mutable oracle observation
+while executing several correlated or value-moving operations in one transaction.
+If one operation captures observation `O0`, the transaction changes the oracle,
+and another operation captures `O1`, the transaction combines state computed from
+observations that were never simultaneously valid.
+
+This can break assumptions that paired operations are jointly priced, cap exposure,
+or offset one another. Where the combined operations have bounded or offsetting
+exposure, the protocol may collect less than the worst-case liability. The update
+may be fully authenticated and economically valid; this is a transaction-level
+snapshot-consistency failure, not a signature-forgery or ordinary stale-price
+finding.
+
+**Recommendation:** Record each accepted observation update's transaction
+provenance and reject live pricing based on an observation written earlier in the
+current transaction. Alternatively, create one immutable transaction-scoped
+snapshot and require every correlated operation to use it.
+
+**Vulnerable pattern (provider-agnostic Move-style adapter):**
+```move
+// VULNERABLE — the update is verified, but its transaction provenance is lost.
+struct Oracle has key, store {
+    id: UID,
+    value: u64,
+}
+
+struct PriceSnapshot has drop, store { value: u64 }
+
+public fun refresh_oracle(oracle: &mut Oracle, verified_update: vector<u8>) {
+    oracle.value = decode_verified_update(verified_update);
+}
+
+public fun load_snapshot(oracle: &Oracle): PriceSnapshot {
+    PriceSnapshot { value: oracle.value }
+}
+
+public fun apply_priced_operation(
+    snapshot: PriceSnapshot, terms: vector<u64>, payment: Coin<Asset>,
+) { /* ... */ }
+```
+
+The composition to verify is generic and may be a Sui PTB, an Aptos entry
+transaction, or an equivalent transaction script:
+```text
+Transaction:
+  1. s0 = load_snapshot(&oracle)                    // observation O0
+  2. apply_priced_operation(s0, terms_a, payment_a)
+  3. refresh_oracle(&mut oracle, verified_update)
+  4. s1 = load_snapshot(&oracle)                    // observation O1
+  5. apply_priced_operation(s1, terms_b, payment_b)
+```
+
+**Safe pattern (Sui-style provenance gate):**
+```move
+use sui::tx_context::{Self, TxContext};
+
+const E_ORACLE_UPDATED_THIS_TX: u64 = 7001;
+
+struct Oracle has key, store {
+    id: UID,
+    value: u64,
+    last_update_tx: vector<u8>,
+    observation_version: u64,
+}
+
+struct PriceSnapshot has drop, store {
+    value: u64,
+    observation_version: u64,
+}
+
+public fun refresh_oracle(
+    oracle: &mut Oracle, verified_update: vector<u8>, ctx: &TxContext,
+) {
+    oracle.value = decode_verified_update(verified_update);
+    oracle.observation_version = oracle.observation_version + 1;
+    oracle.last_update_tx = tx_context::digest(ctx);
+}
+
+public fun load_snapshot(oracle: &Oracle, ctx: &TxContext): PriceSnapshot {
+    let current_tx = tx_context::digest(ctx);
+    assert!(oracle.last_update_tx != current_tx, E_ORACLE_UPDATED_THIS_TX);
+    PriceSnapshot {
+        value: oracle.value,
+        observation_version: oracle.observation_version,
+    }
+}
+```
+
+Other Move deployments can use their equivalent transaction marker, sequence,
+observation version, or an immutable snapshot object. A timestamp, freshness
+threshold, confidence bound, or signature check alone does not establish that
+two reads in one transaction used the same observation.
+
+**Check:**
+1. Enumerate mutable observation writers (`update_oracle`, `refresh`,
+   `publish_observation`, signed quote/update handlers) and every live price read,
+   snapshot constructor, and value-moving consumer.
+2. Trace whether one transaction can update the observation and then invoke a
+   second pricing, mint, buy, settle, or position-management operation using the
+   same mutable state. On Sui, include all PTB-callable `public fun` paths; on
+   Aptos, include all entry-transaction paths.
+3. Look for transaction provenance, an observation nonce/version, or one immutable
+   transaction-scoped snapshot. A freshness check alone is not a mitigation.
+4. Write the concrete sequence `O0 → operation A → valid observation update →
+   O1 → operation B`, and confirm that the update and both operations are
+   reachable without an unobtainable capability or ownership requirement.
+5. Prove the economic or invariant impact: paired operations must jointly bound or
+   offset exposure, and the aggregate charge after fees/rounding must be less than
+   the reachable worst-case liability or otherwise violate a stated invariant.
+6. Do not report a pattern match alone. Dismiss it when all operations use one
+   immutable snapshot, current-transaction updates are rejected, the operations
+   cannot be composed, or no exploitable joint exposure exists.
+
+**Cross-reference:** SUI-28 PTB composition checks, `semantic-gap-checks.md`,
+and the oracle freshness/deviation checks above.
+
+---
+
 ## Oracle Integration Verification Checklist
 
 - [ ] **Staleness:** Every oracle read checks `publish_time` / `latest_round_timestamp` against max age (DEFI-17)
@@ -325,3 +445,4 @@ public fun unpause(state: &mut PriceState, _admin: &AdminCap) { state.is_paused 
 - [ ] **Bounds validation:** Prices checked against min/max bounds before arithmetic (DEFI-22)
 - [ ] **Price direction:** Quote direction (A/B vs B/A) documented and correctly applied (DEFI-23)
 - [ ] **Circuit breakers:** Abnormal deviations trigger pause rather than immediate execution (DEFI-24)
+- [ ] **Same-transaction snapshot consistency:** Correlated value-moving operations cannot mix observations written earlier in the same transaction; use an immutable snapshot or a transaction-provenance gate (DEFI-95)

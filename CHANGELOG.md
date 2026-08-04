@@ -11,6 +11,18 @@ Each release is tagged as `move-auditor@X.Y.Z`.
 
 ---
 
+## [Unreleased]
+
+### Same-transaction oracle snapshot consistency check (DEFI-95 added)
+
+- Added generic `DEFI-95` coverage for mutable oracle observations used by
+  correlated value-moving operations in one transaction.
+- Added provider-agnostic vulnerable and safe Move-style patterns, provenance/
+  immutable-snapshot checks, economic/invariant validation, and anti-false-positive
+  conditions without naming a specific integration.
+- Updated the checklist router, DeFi detection checklist, anti-FP catalog, skill
+  reference table, README, and contribution metadata without changing audit phases.
+
 ## [3.12.0] — 2026-07-26
 
 ### Per-transaction dynamic-field child-object cache ceiling (SUI-46 added)

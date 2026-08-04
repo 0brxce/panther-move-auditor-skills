@@ -74,6 +74,7 @@ its required evidence is automatically `needs_review` regardless of other signal
 - [ ] Profit vs cost analysis: flash loan fee + gas + slippage vs extracted value
 - [ ] Time window: how long does the manipulated state persist?
 - [ ] Alternative oracle check: does the protocol use TWAP, Pyth, or other resistant oracle?
+- [ ] For DEFI-95: exact same-transaction sequence with a valid update, missing provenance/immutable-snapshot gate, correlated exposure or invariant impact, and quantified worst-case liability
 
 ### Flash Loan Attack
 - [ ] Full PTB/tx sequence: loan → manipulate → profit → repay

@@ -72,6 +72,7 @@ them unless you have concrete evidence of ACTUAL harm despite the protection.
 | 3 | PTB reordering attack | PTB commands execute in deterministic order as specified by the sender. There's no reordering within a PTB | Never within a single PTB — but cross-PTB ordering depends on consensus |
 | 4 | Flash loan repayment bypass | Hot potato pattern (no `drop` ability) makes non-repayment a compiler error, not a runtime check | Never if hot potato is correctly implemented (verify abilities) |
 | 5 | Front-running shared object access | Narwhal/Bullshark consensus serializes shared object access. Ordering is not first-come-first-served | When the protocol's correctness depends on transaction ordering within an epoch (e.g., auction end times) |
+| 6 | Valid verified oracle update in the same transaction | A verified observation update is not automatically a forged price, and price changes across separate transactions are expected | When one transaction can use pre-update and post-update observations for correlated value-moving operations with no provenance/snapshot gate; write the exact sequence and joint-exposure proof (DEFI-95) |
 
 ### 2E. DeFi Design Pattern FPs
 

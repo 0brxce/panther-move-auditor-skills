@@ -167,7 +167,7 @@ detected chain and protocol type, keeping the context window lean.
 | Aptos-specific | `aptos-patterns.md` | APT-01 to APT-25 |
 | DeFi cross-cutting | `defi-vectors.md` | DEFI-01 to DEFI-10 |
 | Staking & yield | `defi/defi-staking.md` | DEFI-11 to DEFI-16, DEFI-88 |
-| Oracles | `defi/defi-oracle.md` | DEFI-17 to DEFI-24 |
+| Oracles | `defi/defi-oracle.md` | DEFI-17 to DEFI-24, DEFI-95 |
 | Lending & borrowing | `defi/defi-lending.md` | DEFI-25 to DEFI-34, DEFI-80, DEFI-82, DEFI-84, DEFI-90, DEFI-93 |
 | Math & precision | `defi/defi-math-precision.md` | DEFI-35 to DEFI-42, DEFI-85 to DEFI-87, DEFI-92 |
 | Slippage & MEV | `defi/defi-slippage.md` | DEFI-43 to DEFI-49 |
@@ -198,7 +198,7 @@ move-auditor/
 ├── defi-vectors.md                   # DeFi attack vectors (DEFI-01 to DEFI-10) + router
 ├── defi/
 │   ├── defi-staking.md               # Staking/yield (DEFI-11 to DEFI-16, 88)
-│   ├── defi-oracle.md                # Oracles (DEFI-17 to DEFI-24)
+│   ├── defi-oracle.md                # Oracles (DEFI-17 to DEFI-24, DEFI-95)
 │   ├── defi-lending.md               # Lending/borrowing (DEFI-25 to DEFI-34, 80, 82, 84, 90, 93)
 │   ├── defi-math-precision.md        # Math & precision (DEFI-35 to DEFI-42, 85-87, 92)
 │   ├── defi-slippage.md              # Slippage & DEX (DEFI-43 to DEFI-49)

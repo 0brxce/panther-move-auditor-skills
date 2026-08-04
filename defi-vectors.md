@@ -291,6 +291,7 @@ Bug: docs/UI tell users to pass a Sui wallet address, but Move requires a WXA/ac
 - [ ] Staking: Per-account `last_index` / `reward_debt` synced to current pool index at construction — never defaults to 0; verified across **all historical package versions**, not just the current one (DEFI-88, Scallop class)
 - [ ] Oracle: Different staleness thresholds per feed (DEFI-18)
 - [ ] Oracle: Depeg scenarios handled for wrapped assets (DEFI-21)
+- [ ] Oracle: Same-transaction observation updates cannot cause correlated value-moving operations to use mixed snapshots (DEFI-95)
 - [ ] Lending: Pause mechanism is symmetric (repay ↔ liquidate) (DEFI-28)
 - [ ] Lending: Token denylist/freeze cannot permanently block operations (DEFI-29)
 - [ ] Lending: Rolling net-outflow limiters net repayment/redeposit across segment rollover (DEFI-90)

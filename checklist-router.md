@@ -44,7 +44,7 @@ Load these files when entering Phase 7 — Verify & Triage:
 |--------|------|-----------|
 | `borrow`, `repay`, `withdraw`, `deposit`, `collateral`, `health_factor`, `margin`, `risk_ratio`, `leverage`, `limiter`, `rate_limit`, `outflow` | `defi-vectors.md`, `defi/defi-lending.md` | cross-module interaction scan + DEFI-90 limiter netting scan |
 | `liquidat`, `seize`, `bad_debt`, `insurance`, `self_match`, `backstop`, `adl`, `round_price_to_tick`, `ticker_size`, `settle_price`, `mark_px` | `defi/defi-liquidation.md`, `defi/defi-math-precision.md` | idle-cash + price-source checks + **mandatory DEFI-91/92 check-vs-settlement trace: confirm the price/rounding/units used to DECIDE the liquidation equal those used to SETTLE it, and that no hard `assert!` tying the two bases can revert a retried queue item** |
-| `oracle`, `pyth`, `switchboard`, `price_feed`, `twap` | `defi/defi-oracle.md` | stale/deviation audit |
+| `oracle`, `price_feed`, `price_info`, `oracle_update`, `refresh_oracle`, `publish_observation`, `signed_update`, `twap` | `defi/defi-oracle.md` | stale/deviation audit; run DEFI-95 when a mutable observation writer and same-transaction pricing/value-moving path coexist |
 | `reward_per_share`, `accumulator`, `claim`, `stake`, `unstake`, `reward_manager`, `pool_reward`, `liquidity_mining`, `total_rewards` | `defi/defi-staking.md`, `defi/defi-math-precision.md`, `semantic-gap-checks.md` | checkpoint/accumulator review + **mandatory DEFI-85/86 fixed-point overflow check** |
 | `swap`, `pool`, `lp`, `min_amount_out`, `slippage` | `defi/defi-slippage.md` | PTB / multi-hop review |
 | `ed25519`, `secp256k1`, `verify_signature`, `nonce`, `threshold`, `signers`, `quorum`, `multisig`, `approvers`, `guardians` | `defi/defi-signatures.md` | replay / domain separation review + **policy-snapshot review (DEFI-89): if signatures are checked against a mutable signer-set/threshold/quorum, confirm the signed message binds a policy version/nonce** |
@@ -66,12 +66,13 @@ Load these files when entering Phase 7 — Verify & Triage:
 | `limiter`, `rate_limit`, `outflow`, `inflow`, `segment_duration`, `cycle_duration`, `bucket` | load `defi/defi-lending.md` and force **rolling net-outflow limiter rollover review (DEFI-90)** |
 | `rate_model`, `interest_model`, `reward_rate`, `fee_rate` admin setters | force pre-accrual review |
 | `clock::timestamp_ms` combined with oracle timestamps | force unit-conversion review |
+| Mutable oracle update signals (`oracle_update`, `refresh_oracle`, `publish_observation`, signed update/quote handlers, `observation_version`) | force **same-transaction oracle snapshot-consistency review (DEFI-95)** |
 
 ## Escalation Rules
 
 - If lending is detected, run both semantic-gap and cross-module interaction review.
 - If segmented limiter signals are detected, run DEFI-90: add usage before a segment boundary, reduce after rollover, and confirm live usage returns to zero.
-- If oracle is detected, always check stale price, deviation reference, and liquidation price-source consistency.
+- If oracle is detected, always check stale price, deviation reference, and liquidation price-source consistency. If a mutable observation writer and same-transaction value-moving path are present, also run DEFI-95: trace `O0 → operation A → valid observation update → operation B`, then prove a transaction-provenance gate or immutable snapshot prevents mixed observations.
 - If Sui stateful `public fun` is detected, think in PTB sequences, not single-call flows.
 - **If the chain is Sui AND any operation must touch many entities atomically**, run the SUI-46 ritual: (1) list every command of the composed transaction, (2) count distinct dynamic-field children per command, (3) **sum them** — the object-runtime cache is cumulative across commands and capped at 1,000, (4) identify who can grow the dominant term and whether it is permissionless, (5) ask whether the operation is resumable if it aborts. Never accept "we are far under the gas cap" or a passing `sui move test` as evidence that it fits.
 - **If any reward/accumulator/checkpoint pattern is detected**, force DEFI-85/86 + 12.1 checkpoint deadlock analysis. This is the **#1 missed bug class** in Move audits. Open every fixed-point helper, derive overflow bounds, compute threshold table, and apply the Recoverability Matrix.
