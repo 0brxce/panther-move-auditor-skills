@@ -1,6 +1,6 @@
 # Confidence Gates
 
-Load this file during **Phase 7 — Verify & Triage**. It defines a multi-signal
+Load this file during the **Verification phase**. It defines a multi-signal
 confidence model that prevents low-evidence findings from receiving high severity.
 
 ---
@@ -138,9 +138,9 @@ Run this 6-gate checklist on every finding before finalizing. ALL gates must pas
 for the finding to proceed at its claimed severity.
 
 ### Gate 1: Process Gate
-- [ ] Finding survived Phase 7 Step 1 (Dual Narrative Test)
-- [ ] Finding survived Phase 7 Step 2 (8-Dimension Disproof)
-- [ ] Finding survived Phase 7 Step 4 (Kill Questions 1-6)
+- [ ] Finding survived the Dual Narrative Test
+- [ ] Finding survived the 8-Dimension Disproof
+- [ ] Finding survived Kill Questions 1-6
 - If any step was skipped → finding cannot be VALID
 
 ### Gate 2: Reachability Gate
