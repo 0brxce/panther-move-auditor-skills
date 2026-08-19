@@ -1,6 +1,6 @@
 # Evidence Chains
 
-Load this file during the **Verification phase**. It provides structured evidence
+Load this file during **Phase 7 — Verify & Triage**. It provides structured evidence
 templates for proving or disproving Move audit findings.
 
 Every non-trivial finding must include at least one completed evidence template.

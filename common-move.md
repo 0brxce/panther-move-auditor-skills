@@ -93,10 +93,7 @@ only warns, ignores it, and emits the annotated function normally.
 // VULNERABLE — "analysis_only" is meaningful only to an auxiliary tool.
 // If the production compiler ignores it, this unrestricted forwarder is emitted.
 #[analysis_only]
-public fun analysis_withdraw(
-    vault: &mut Vault,
-    amount: u64,
-): Balance<Asset> {
+public fun analysis_withdraw(vault: &mut Vault, amount: u64): u64 {
     withdraw_internal(vault, amount)
 }
 ```
@@ -105,10 +102,7 @@ public fun analysis_withdraw(
 // SAFE — use a compiler-native exclusion attribute and prove absence from the
 // production artifact. Keep auxiliary verification code in an unpublished package.
 #[test_only]
-public fun test_withdraw(
-    vault: &mut Vault,
-    amount: u64,
-): Balance<Asset> {
+public fun test_withdraw(vault: &mut Vault, amount: u64): u64 {
     withdraw_internal(vault, amount)
 }
 ```
@@ -119,47 +113,31 @@ public fun test_withdraw(
    pipeline. Prioritize names suggesting `only`, `test`, `spec`, `verify`,
    `proof`, `analysis`, `debug`, `dev`, or `mock` semantics.
 2. For the pinned production toolchain, establish whether the compiler itself
-   strips the annotated item. Do not infer this from the attribute name,
-   comments, verifier documentation, IDE behavior, or test builds.
-3. Run the exact production build and review all warnings. Treat every unknown,
-   unused, or ignored attribute warning on a public or entry function as a
-   security signal until artifact inspection resolves it.
-4. Enumerate functions from the emitted modules with the chain/toolchain's
-   bytecode disassembler or module inspector and diff that list against the
-   intended production API. A `strings` search may find suspicious symbols but
-   is discovery evidence, not proof of visibility or reachability.
-5. For every supposedly excluded function that survives compilation, ignore its
-   prefix and annotation. Classify its real bytecode visibility, parameters,
-   return values, authorization, state mutation, and downstream calls exactly
-   like any other production function.
-6. Prioritize thin forwarders taking mutable state, shared objects, global
-   resources, balances, capabilities, or signer-controlled values. Trace through
-   the private callee; a wrapper with no local check may expose privileged logic.
+   strips the annotated item. Do not infer this from names, comments, verifier
+   documentation, IDE behavior, or test builds.
+3. Run the exact production build and review unknown, unused, or ignored
+   attribute warnings on public or entry functions.
+4. Enumerate functions from emitted modules with the chain/toolchain's bytecode
+   disassembler or module inspector and diff them against the intended API. A
+   `strings` search is discovery evidence only, not proof of visibility.
+5. For every supposedly excluded function that survives compilation, classify
+   its real visibility, authorization, state mutation, and downstream calls.
+6. Prioritize thin forwarders taking mutable state, shared objects, resources,
+   balances, capabilities, or signer-controlled values.
 7. On Sui, treat every surviving `public fun` as PTB-callable. On Aptos, separate
-   direct `entry` reachability from package-level reachability and inspect every
-   public/entry caller that can invoke the helper.
+   direct `entry` reachability from package-level reachability.
 8. Require a CI/release allowlist over the compiled public API and fail on
-   unexpected functions, forbidden non-production symbol families, or compiler
-   warnings for unrecognized attributes. Re-run this gate after toolchain changes.
+   unexpected functions, forbidden symbol families, or unrecognized attributes.
 
 **Severity guidance:** Base severity on the surviving function, not the
 annotation mistake. Unrestricted value movement or authority mutation is
 High/Critical according to reachable impact; state corruption or material DoS is
-Medium/High; an emitted read-only helper with no sensitive consequence is Low or
-Informational. An unfamiliar attribute by itself is only a lead.
+Medium/High; a harmless read-only helper is Low or Informational.
 
-**False-positive controls:**
-
-- Confirm the file belongs to the actual publish closure; a structurally
-  separate package excluded from publishing is not production attack surface.
-- Confirm the function exists in a non-test production artifact before claiming
-  that an exclusion failed.
-- Do not assume `#[test_only]` is safe merely from source. Verify absence under
-  the pinned production compiler and build command.
-- Do not claim direct Aptos transaction reachability for a surviving `public fun`
-  unless it is `entry` or a reachable entry function calls it.
-- If the emitted helper retains ordinary authorization and cannot violate an
-  invariant, report only the residual API-exposure or hardening impact.
+**False-positive controls:** Confirm the package is in the publish closure and
+the function exists in a non-test production artifact. Do not assume
+`#[test_only]` is safe from source alone. Do not claim direct Aptos transaction
+reachability for a surviving `public fun` unless it is `entry` or called by one.
 
 ---
 
@@ -1348,7 +1326,7 @@ Run through each item and mark ✅ (clean) or ❌ (finding):
 - [ ] All entry functions have access control
 - [ ] No capability structs with `copy` ability
 - [ ] No authorization functions returning bool with unchecked call sites — use assert pattern (1.6)
-- [ ] Every source annotation has compiler-proven production semantics; emitted modules contain no unexpected public/entry helpers or non-production symbols (1.7)
+- [ ] Every source annotation has compiler-proven production semantics; emitted modules contain no unexpected public/entry helpers (1.7)
 - [ ] All arithmetic checked for overflow/underflow DoS
 - [ ] No division before multiplication in financial math
 - [ ] All divisions guarded against zero denominator
