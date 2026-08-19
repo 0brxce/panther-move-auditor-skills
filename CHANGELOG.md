@@ -13,6 +13,16 @@ Each release is tagged as `move-auditor@X.Y.Z`.
 
 ## [Unreleased]
 
+### Production-surface parity check (common-move.md 1.7 added)
+
+- Added a generic check for functions assumed to be excluded by annotations,
+  comments, naming conventions, or auxiliary tooling but retained by the
+  production compiler.
+- Added compiler-warning review, emitted-module API reconciliation,
+  chain-aware reachability, severity rules, and anti-false-positive controls.
+- Wired the check into the mandatory audit pass, feature routing, and completion
+  checklist.
+
 ### Same-transaction oracle snapshot consistency check (DEFI-95 added)
 
 - Added generic `DEFI-95` coverage for mutable oracle observations used by

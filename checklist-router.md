@@ -54,6 +54,7 @@ Load these files when entering Phase 7 — Verify & Triage:
 
 | Signal | Action |
 |--------|--------|
+| Any `#[...]` attribute, especially names containing `only`, `test`, `spec`, `verify`, `proof`, `analysis`, `debug`, `dev`, or `mock` | force **production-surface parity review (common-move.md 1.7)** — establish compiler-native semantics, review unknown/ignored warnings, enumerate the emitted module API, and audit surviving helpers by actual visibility and authorization |
 | `dynamic_field`, `dynamic_object_field`, `object::new`, `object::delete` | force object lifecycle cleanup review |
 | Sui `transfer::share_object`, `public_share_object`, or `share_object` on any `has key` struct | force **stale-package surface review (SUI-23)** — every public/entry/`public(package)` function taking `&T` or `&mut T` must assert `version == CURRENT_VERSION`; missing version field on the shared struct = Critical; old package versions remain callable forever (Scallop class) |
 | Sui `public fun` mutates state | force PTB composability review |
@@ -70,6 +71,7 @@ Load these files when entering Phase 7 — Verify & Triage:
 
 ## Escalation Rules
 
+- If an annotation claims that a function is absent from production, build in production mode and inspect the emitted module to prove it. If it survives, route it through normal entrypoint, authorization, value-flow, and composition checks.
 - If lending is detected, run both semantic-gap and cross-module interaction review.
 - If segmented limiter signals are detected, run DEFI-90: add usage before a segment boundary, reduce after rollover, and confirm live usage returns to zero.
 - If oracle is detected, always check stale price, deviation reference, and liquidation price-source consistency. If a mutable observation writer and same-transaction value-moving path are present, also run DEFI-95: trace `O0 → operation A → valid observation update → operation B`, then prove a transaction-provenance gate or immutable snapshot prevents mixed observations.

@@ -111,6 +111,12 @@ You are a senior Move security researcher. Find real, exploitable vulnerabilitie
 **Coverage Plan (mandatory):**
 Use `checklist-router.md` to derive a coverage plan listing: detected chain, protocol families, feature flags, reference files loaded, and required follow-up passes. If a route fires, load the file.
 
+**Production-surface parity gate (mandatory):** Enumerate all source attributes,
+review compiler warnings, and compare the intended public API with the functions
+present in the production bytecode/module artifact. Treat annotations, comments,
+and helper naming as claims only. Audit every surviving supposedly non-production
+helper using its actual visibility and authorization (common-move.md 1.7).
+
 **Entry Point Classification:**
 Attack surface differs by chain:
 
