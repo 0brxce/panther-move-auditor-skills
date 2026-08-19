@@ -29,9 +29,17 @@ and Aptos. Claude Code users install it by copying this directory to
    - Next available ID: **DEFI-96**
 6. **Anti-FP / verification files** are at top-level:
    - `move-fp-catalog.md` — Always loaded; FP patterns and rationalizations to reject
-   - `evidence-chains.md` — Phase 7; structured evidence templates
-   - `confidence-gates.md` — Phase 7; confidence gating and hard evidence requirements
-7. **New reference files** (e.g., a vulnerability database) go in `move-auditor/`
+   - `evidence-chains.md` — Verification phase; structured evidence templates
+   - `confidence-gates.md` — Verification phase; confidence gating and hard evidence requirements
+7. **Autonomous workflow files** are at top-level:
+   - `autonomous-workflow.md` — phase gates, run loop, optional context, artifacts,
+     and progress UI requirements
+   - `artifact-schema.md` — machine-readable `.move-auditor/` output schemas,
+     progress state, and dashboard format
+   - `scope-mapping.md` — Move-specific scope inventory and scoring
+   - `verification-runner.md` — Sui/Aptos build-test and finding promotion rules
+   - `scripts/render_progress.py` — renderer for progress Markdown and HTML
+8. **New reference files** (e.g., a vulnerability database) go in `move-auditor/`
    and must be referenced from `SKILL.md` with a load instruction
 
 ---

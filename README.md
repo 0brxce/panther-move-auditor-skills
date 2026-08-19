@@ -6,7 +6,7 @@
 <p align="center">
   <a href="https://opensource.org/license/mit/"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="Contributions Welcome"></a>
-  <img src="https://img.shields.io/badge/version-3.10.0-blue.svg" alt="Version 3.10.0">
+  <img src="https://img.shields.io/badge/version-4.0.0-blue.svg" alt="Version 4.0.0">
   <img src="https://img.shields.io/badge/patterns-180%2B-red.svg" alt="180+ Patterns">
   <img src="https://img.shields.io/badge/chains-Sui%20%7C%20Aptos-purple.svg" alt="Sui | Aptos">
 </p>
@@ -17,7 +17,7 @@
 
 ---
 
-A portable skill for Codex and [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that turns your AI coding agent into a Move (Sui & Aptos) smart contract security auditor — battle-tested vulnerability patterns drawn from real-world exploits, ready to hunt bugs the moment you open a `.move` file.
+A portable skill for Codex and [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that turns your AI coding agent into an autonomous Move (Sui & Aptos) smart contract security auditor — battle-tested vulnerability patterns, artifact-backed coverage, and verification gates ready to run the moment you open a `.move` file.
 
 **Read the full write-up:** [The Move Auditor — Blog Post](https://pantheraudits.com/blog/the-move-auditor.html)
 
@@ -27,7 +27,9 @@ A portable skill for Codex and [Claude Code](https://docs.anthropic.com/en/docs/
 
 - **180+ vulnerability patterns** across chain-agnostic, Sui-specific, Aptos-specific, and DeFi checks
 - **Auto-activates** on `.move` files — no setup, no slash commands needed
-- **8-phase audit workflow** — from codebase mapping to verified, triaged report
+- **Autonomous audit workflow** — intake, surface mapping, coverage routing, scope audit, synthesis, verification, and report
+- **Machine-readable run artifacts** — scopes, coverage plan, candidate findings, verification results, clean checks, and report under `.move-auditor/`
+- **Optional upfront context** — users can provide known issues, focus areas, threat model notes, package IDs, or out-of-scope rules without making context mandatory
 - **Anti-false-positive engine** — confidence gating, evidence chains, FP catalog, and self-hallucination checks
 - **Build & test log analysis** — catches arithmetic aborts, assertion failures, and `#[expected_failure]` anomalies
 - **Signal-based coverage routing** — detects protocol type and loads only relevant patterns
@@ -76,6 +78,57 @@ cp -r . ~/.claude/commands/move-auditor
 ---
 
 ## Usage
+
+### Run an autonomous audit
+
+From the root of the Move project under review:
+
+```bash
+cd /path/to/your-move-project
+codex
+```
+
+Then run:
+
+```text
+Use $move-auditor to run a full autonomous audit of this Move codebase.
+```
+
+For Claude Code:
+
+```text
+/move-auditor
+```
+
+The auditor will create or resume `.move-auditor/`, map the attack surface, route
+checks, audit scopes, verify candidates, show progress through `.move-auditor/`
+progress artifacts, and write `.move-auditor/report.md`.
+
+To resume a previous autonomous run:
+
+```text
+Use $move-auditor to continue the autonomous audit from existing `.move-auditor/` artifacts.
+```
+
+### Live progress UI
+
+Full autonomous runs maintain these files while the audit is running:
+
+- `.move-auditor/progress.json` - machine-readable phase and count state
+- `.move-auditor/progress.md` - compact text dashboard for quick inspection
+- `.move-auditor/dashboard.html` - browser-openable progress dashboard
+
+The Markdown and HTML views are generated from `progress.json` by
+`scripts/render_progress.py` when the script is available to the active skill.
+
+Ask for progress explicitly when you want the dashboard surfaced during the run:
+
+```text
+Use $move-auditor to run a full autonomous audit of this Move codebase and show live progress in the progress UI.
+```
+
+The agent must not claim progress is visible in a UI unless `progress.md`,
+`dashboard.html`, or a real control-plane URL exists.
 
 ### Codex
 
@@ -127,34 +180,52 @@ bugs invisible to static-only review.
 > **Static-only mode:** If the project doesn't build (missing deps, partial code, review-only
 > context), the skill still runs the full pattern-based audit — it just skips test log analysis.
 
+### Optional audit context
+
+The autonomous scan does not require hand-fed hints, but users can provide extra context at
+the start when they want a focused or informed run:
+
+```text
+Use $move-auditor to audit this Sui package.
+
+Audit Context:
+- Known issue: reward index sync was recently patched; verify old package versions.
+- Focus area: liquidation and oracle settlement paths.
+- Out of scope: admin-only parameter tuning with no user impact.
+- Deployment: package 0x..., shared pool object 0x...
+```
+
+The same context can live in `.move-auditor/context.md`, `audit-context.md`,
+`security-context.md`, or `known-issues.md`. Answer-bearing context is recorded in
+`run.json` and treated as a lead for targeted verification, not as proof.
+
 ---
 
 ## How It Works
 
-The skill runs an **8-phase pipeline** on every audit:
+The skill runs an autonomous, resumable workflow on every full audit:
 
 ```
-Phase 1  Detect chain, map codebase, classify entry points, build coverage plan
+Intake          Detect chain, build root, docs, optional context, build/test state
      |
-Phase 2  Multi-perspective review (Attacker, Designer, Integrator, Symmetry,
-         Bidirectional Admin, Consistency)
+Progress UI     Refresh `.move-auditor/progress.*` and dashboard at phase gates
      |
-Phase 3  Structured vulnerability scan — every check in every loaded reference file
+Surface Map     Write `.move-auditor/scopes.json` for all concrete attack surfaces
      |
-Phase 4  DeFi & protocol-specific deep-dive (87 subcategory patterns)
+Coverage Router Load relevant Move/Sui/Aptos/DeFi references and attach checks
      |
-Phase 5  Semantic gap & stale-state scan (accumulators, checkpoints, cross-module drift)
+Scope Audit     Audit one scope at a time; write candidates and clean checks
      |
-Phase 6  Cross-module interaction scan (9 mandatory interaction pairs)
+Synthesis       Compose cross-module, PTB, stale-state, oracle, and package-version chains
      |
-Phase 7  Verify & triage — Move-expert validation, dual narrative test, 8-dimension
-         disproof, kill questions, evidence chains, confidence gating
+Verification    Confirm, downgrade, dismiss, or block every candidate with evidence gates
      |
-Phase 8  Structured audit report with severity, confidence, PoC, and fix
+Report          Generate `.move-auditor/report.md` from evidence-backed findings
 ```
 
 Reference files are loaded **on demand** — the agent reads only what's relevant to the
-detected chain and protocol type, keeping the context window lean.
+detected chain, protocol type, and current phase while retaining machine-readable
+artifacts for coverage and resume.
 
 ---
 
@@ -181,7 +252,12 @@ detected chain and protocol type, keeping the context window lean.
 
 ```
 move-auditor/
-├── SKILL.md                          # Orchestrator — 8-phase workflow, coverage routing
+├── SKILL.md                          # Compact orchestrator — autonomous workflow routing
+├── autonomous-workflow.md            # Phase gates, run loop, optional context, artifacts
+├── artifact-schema.md                # JSON schemas for `.move-auditor/` outputs
+├── scope-mapping.md                  # Move-specific surface inventory and scoring
+├── verification-runner.md            # Sui/Aptos proof, build/test, and promotion rules
+├── scripts/render_progress.py        # Progress Markdown and HTML dashboard renderer
 │
 ├── common-move.md                    # Chain-agnostic checks + verification checklist
 ├── sui-patterns.md                   # Sui-specific patterns (SUI-01 to SUI-46)
@@ -192,8 +268,8 @@ move-auditor/
 ├── semantic-gap-checks.md            # Stale-state, accumulator, cross-module desync checks
 │
 ├── move-fp-catalog.md                # Anti-FP: rationalizations to reject, FP catalog
-├── evidence-chains.md                # Structured evidence templates (Phase 7)
-├── confidence-gates.md               # Confidence gating, hard evidence requirements (Phase 7)
+├── evidence-chains.md                # Structured evidence templates (verification phase)
+├── confidence-gates.md               # Confidence gating, hard evidence requirements (verification phase)
 │
 ├── defi-vectors.md                   # DeFi attack vectors (DEFI-01 to DEFI-10) + router
 ├── defi/
@@ -232,7 +308,7 @@ Bugs found by `move-auditor` have been accepted into production codebases, conte
 
 > The OpenZeppelin find was a unique result from [benchmarking](benchmarks/BENCHMARK-openzeppelin.md) — no other AI audit tool (MAIA, Raw Claude CLI) caught it.
 >
-> **How to read this table**: `move-auditor` is a *candidate generator*, not a proof system. Each row represents a bug a human auditor reproduced, triaged, and submitted. The skill narrows where to look; the auditor still does the reading, the PoC, and the write-up.
+> **How to read this table**: `move-auditor` now produces artifact-backed candidates and verification evidence, but it is still not a substitute for human sign-off. Each accepted row involved human reproduction, triage, and submission.
 
 ---
 
@@ -253,8 +329,8 @@ The skill is [benchmarked](benchmarks/BENCHMARK.md) against baseline prompts (ra
 - [ ] Sui DeFi protocol-specific patterns (Cetus, Aftermath, Turbos)
 - [ ] Aptos DeFi protocol-specific patterns (Thala, Aries, Echelon)
 - [ ] Automated grep patterns for common Move anti-patterns
-- [ ] Machine-readable audit artifacts (`coverage-plan`, validated findings, structured clean checks)
-- [ ] Report templates for private audits vs. contest submissions
+- [x] Machine-readable audit artifacts (`coverage-plan`, scopes, validated findings, structured clean checks)
+- [x] Report template for autonomous audit output
 - [x] Benchmarking against baseline prompts and manual review
 
 ---

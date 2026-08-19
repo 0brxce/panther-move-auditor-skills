@@ -28,12 +28,12 @@ and chain-specific updates all help make this skill more useful for the Move sec
 
 | Category | File | Current IDs |
 |----------|------|-------------|
-| Staking / Yield | `defi/defi-staking.md` | DEFI-11 to DEFI-16 |
+| Staking / Yield | `defi/defi-staking.md` | DEFI-11 to DEFI-16, DEFI-88 |
 | Oracle | `defi/defi-oracle.md` | DEFI-17 to DEFI-24, DEFI-95 |
-| Lending / Borrowing | `defi/defi-lending.md` | DEFI-25 to DEFI-34, DEFI-80, DEFI-82, DEFI-84, DEFI-90 |
-| Math / Precision | `defi/defi-math-precision.md` | DEFI-35 to DEFI-42, DEFI-85 to DEFI-87 |
+| Lending / Borrowing | `defi/defi-lending.md` | DEFI-25 to DEFI-34, DEFI-80, DEFI-82, DEFI-84, DEFI-90, DEFI-93 |
+| Math / Precision | `defi/defi-math-precision.md` | DEFI-35 to DEFI-42, DEFI-85 to DEFI-87, DEFI-92 |
 | Slippage / MEV | `defi/defi-slippage.md` | DEFI-43 to DEFI-49 |
-| Liquidation | `defi/defi-liquidation.md` | DEFI-50 to DEFI-66, DEFI-81, DEFI-83 |
+| Liquidation | `defi/defi-liquidation.md` | DEFI-50 to DEFI-66, DEFI-81, DEFI-83, DEFI-91, DEFI-94 |
 | Auction / CLM | `defi/defi-auction-clm.md` | DEFI-67 to DEFI-73 |
 | Signatures | `defi/defi-signatures.md` | DEFI-74 to DEFI-79, DEFI-89 |
 | Lending Design | `defi/defi-lending-design-patterns.md` | DESIGN-L1 to DESIGN-L4 |
@@ -67,6 +67,7 @@ Found a Move vulnerability in a public audit report or contest? Add it to the vu
 - [ ] Added to verification checklist
 - [ ] `SKILL.md` line count still under 500
 - [ ] If adding a new reference file: referenced from `SKILL.md`
+- [ ] If changing autonomous flow: updated `autonomous-workflow.md`, `artifact-schema.md`, `scope-mapping.md`, or `verification-runner.md` instead of expanding `SKILL.md`
 
 ---
 

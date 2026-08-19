@@ -13,6 +13,17 @@ Each release is tagged as `move-auditor@X.Y.Z`.
 
 ## [Unreleased]
 
+### Production-surface parity check (common-move.md 1.7 added)
+
+- Added a generic check for functions assumed to be excluded by annotations,
+  comments, naming conventions, or auxiliary tooling but retained by the
+  production compiler.
+- Added vulnerable and safe Move-style examples, compiler-warning review,
+  emitted-module API reconciliation, chain-aware reachability, severity rules,
+  anti-false-positive controls, and CI allowlist guidance.
+- Wired the check into mandatory high-value passes, feature routing, scope
+  mapping, verification, and the common Move completion checklist.
+
 ### Same-transaction oracle snapshot consistency check (DEFI-95 added)
 
 - Added generic `DEFI-95` coverage for mutable oracle observations used by
@@ -22,6 +33,63 @@ Each release is tagged as `move-auditor@X.Y.Z`.
   conditions without naming a specific integration.
 - Updated the checklist router, DeFi detection checklist, anti-FP catalog, skill
   reference table, README, and contribution metadata without changing audit phases.
+
+### Live progress UI contract for autonomous runs
+
+- Added required progress artifacts for full autonomous audits:
+  `.move-auditor/progress.json`, `.move-auditor/progress.md`, and
+  `.move-auditor/dashboard.html`
+- Added `scripts/render_progress.py` to render progress Markdown and a
+  self-contained auto-refreshing HTML dashboard from `progress.json`
+- Defined the progress schema, browser-openable dashboard expectations, update
+  cadence, phase-gate requirement, and blocker/count fields
+- Updated the skill entrypoint and README so agents must not claim progress is
+  visible in a UI unless an actual progress artifact or control-plane URL exists
+
+---
+
+## [4.0.0] — 2026-07-05
+
+### Autonomous artifact-backed Move audit workflow
+
+This release restructures `move-auditor` from a single long always-loaded workflow
+into a compact orchestrator plus phase-specific reference files. The Move-specific
+pattern library remains the core signal source; the new workflow adds coverage
+tracking, resumable artifacts, stronger verification gates, and explicit optional
+context intake.
+
+**New autonomous workflow references:**
+- `autonomous-workflow.md` — full run loop, phase gates, run directory discipline,
+  optional operator context, coverage completion rules, and reporting requirements
+- `artifact-schema.md` — machine-readable schemas for `.move-auditor/run.json`,
+  `coverage-plan.json`, `scopes.json`, candidate findings, verification results,
+  confirmed/dismissed findings, clean checks, resource requests, and report output
+- `scope-mapping.md` — Move-specific scope generation for Sui/Aptos entrypoints,
+  shared objects, capabilities, value flows, math, oracles, composition paths, and
+  priority scoring
+- `verification-runner.md` — Sui/Aptos build-test commands, local proof rules,
+  production read-only evidence guidance, promotion/dismissal rules, and reportability
+  gates
+
+**SKILL.md changes:**
+- Rewritten as a 196-line orchestrator so the always-loaded context stays small
+  while the detailed methodology loads on demand
+- Version bumped to `4.0.0`
+- Full audit flow now writes/resumes artifacts under `.move-auditor/`
+- Added native optional upfront audit context support for known issues, focus areas,
+  threat models, out-of-scope notes, and deployment/package IDs
+- Preserved the existing high-value Move passes: fixed-point helper gate, stale-package
+  gate, reward/checkpoint deadlock gate, check-vs-settlement trace, Sui PTB multi-call
+  review, semantic-gap scan, and mandatory lending cross-module pairs
+
+**README updates:**
+- Documents the autonomous workflow, optional context input, run artifacts, and new
+  reference-file structure
+- Adds a direct "Run an autonomous audit" recipe for Codex and Claude Code,
+  including resume behavior from existing `.move-auditor/` artifacts
+- Marks machine-readable audit artifacts and report template support as complete
+
+---
 
 ## [3.12.0] — 2026-07-26
 
