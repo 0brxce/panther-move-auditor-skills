@@ -26,7 +26,7 @@ Produce a short plan:
 
 ## Verification Phase Loading
 
-Load these files when entering the Verification phase:
+Load these files when entering Phase 7 — Verify & Triage:
 
 - `evidence-chains.md` — structured evidence templates for data flow, math proofs, PoC
 - `confidence-gates.md` — confidence gating, hard evidence requirements per finding type
@@ -54,7 +54,6 @@ Load these files when entering the Verification phase:
 
 | Signal | Action |
 |--------|--------|
-| Any `#[...]` attribute, especially names containing `only`, `test`, `spec`, `verify`, `proof`, `analysis`, `debug`, `dev`, or `mock` | force **production-surface parity review (common-move.md 1.7)** — establish compiler-native semantics under the pinned production toolchain, review unknown/ignored-attribute warnings, enumerate the emitted module API, and audit every surviving helper by actual visibility and authorization |
 | `dynamic_field`, `dynamic_object_field`, `object::new`, `object::delete` | force object lifecycle cleanup review |
 | Sui `transfer::share_object`, `public_share_object`, or `share_object` on any `has key` struct | force **stale-package surface review (SUI-23)** — every public/entry/`public(package)` function taking `&T` or `&mut T` must assert `version == CURRENT_VERSION`; missing version field on the shared struct = Critical; old package versions remain callable forever (Scallop class) |
 | Sui `public fun` mutates state | force PTB composability review |
@@ -71,7 +70,6 @@ Load these files when entering the Verification phase:
 
 ## Escalation Rules
 
-- If any source annotation claims or implies that a function is absent from production, do not trust the label. Build in production mode, inspect the emitted module, and prove the symbol is absent. If it survives, route the function through normal entrypoint, authorization, value-flow, and composition checks.
 - If lending is detected, run both semantic-gap and cross-module interaction review.
 - If segmented limiter signals are detected, run DEFI-90: add usage before a segment boundary, reduce after rollover, and confirm live usage returns to zero.
 - If oracle is detected, always check stale price, deviation reference, and liquidation price-source consistency. If a mutable observation writer and same-transaction value-moving path are present, also run DEFI-95: trace `O0 → operation A → valid observation update → operation B`, then prove a transaction-provenance gate or immutable snapshot prevents mixed observations.
