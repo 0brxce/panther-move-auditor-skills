@@ -229,7 +229,7 @@ let unlocked_rewards =
 4. If overflow is reachable, check whether it occurs **before a state checkpoint** (see 12.1)
 5. Cross-ref: 12.1, DEFI-85, DEFI-86
 
-### 2.5 Bitwise Operations — No Overflow Protection
+### 2.5a Bitwise Operations — No Overflow Protection
 
 **Pattern:** Move auto-aborts on arithmetic overflow (addition, subtraction, multiplication), but bitwise operations (`<<`, `>>`, `&`, `|`, `^`) have **no such safeguards**. Bit shifts can silently overflow or produce unexpected results.
 
@@ -1331,7 +1331,7 @@ Run through each item and mark ✅ (clean) or ❌ (finding):
 - [ ] No division before multiplication in financial math
 - [ ] All divisions guarded against zero denominator
 - [ ] No narrowing casts without bounds assertions
-- [ ] All bitwise operations checked for overflow/precision loss — Move does NOT auto-check these (2.5)
+- [ ] All bitwise operations checked for overflow/precision loss — Move does NOT auto-check these (2.5a)
 - [ ] Packed counters/flags use masks wide enough for their maximum values; power-of-two boundary counts do not decode to zero (2.8)
 - [ ] All `move_from` calls preceded by ownership check
 - [ ] No timestamp dependencies exploitable in <30s window
