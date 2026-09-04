@@ -1,0 +1,32 @@
+name: Sync from upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "11 */6 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream changes
+        run: |
+          git remote add upstream https://github.com/pantheraudits/move-auditor.git || \
+            git remote set-url upstream https://github.com/pantheraudits/move-auditor.git
+
+          git fetch upstream main
+          git merge --no-edit upstream/main
+          git push origin main
