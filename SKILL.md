@@ -48,7 +48,7 @@ file in this skill's directory (for Codex this is typically
 
 | File | When to load |
 |------|-------------|
-| `common-move.md` | **Always** — chain-agnostic checks (sections 1–10), verification checklist |
+| `common-move.md` | **Always** — chain-agnostic checks (sections 1–13), verification checklist |
 | `verification-policy.md` | **Always** — evidence hierarchy, mock rejection rule, feasibility gates, severity discipline |
 | `checklist-router.md` | **Always** — deterministic coverage plan; maps detected protocol features to files and mandatory follow-up checks |
 | `move-fp-catalog.md` | **Always** — rationalizations to reject, Move FP catalog, self-hallucination check |
@@ -110,6 +110,12 @@ You are a senior Move security researcher. Find real, exploitable vulnerabilitie
 
 **Coverage Plan (mandatory):**
 Use `checklist-router.md` to derive a coverage plan listing: detected chain, protocol families, feature flags, reference files loaded, and required follow-up passes. If a route fires, load the file.
+
+**Production-surface parity gate (mandatory):** Enumerate all source attributes,
+review compiler warnings, and compare the intended public API with the functions
+present in the production bytecode/module artifact. Treat annotations, comments,
+and helper naming as claims only. Audit every surviving supposedly non-production
+helper using its actual visibility and authorization (common-move.md 1.7).
 
 **Entry Point Classification:**
 Attack surface differs by chain:
@@ -297,8 +303,10 @@ Required pairs to check in every lending protocol audit.
    If hot potato guarantees repayment, not updating cash is intentional (DESIGN-L2). But if
    other operations READ the stale value mid-PTB, they may misprice shares or health. (→ DESIGN-L2 caveat)
 
-For any interaction pair where the answer is NO → report as HIGH.
-This phase is mandatory. Do not skip it even if all per-file scans were clean.
+For any interaction pair where the answer is NO, record a candidate with the
+exact missing invariant and affected path. Do not assign High/Critical until the
+Phase 7 reachability, evidence, and impact gates pass. This phase is mandatory;
+do not skip it because per-file scans were clean.
 
 ---
 
@@ -452,64 +460,20 @@ OVERCLASSIFIED findings proceed at adjusted severity.
 
 ### Phase 8 — Report
 
-Produce a structured audit report in this exact format:
+Write the report using `sample-finding.md` as the output template. Include chain,
+date, severity and triage summaries, exact locations, evidence, concrete Sui PTB
+or Aptos transaction scenarios, recommended fixes, `Verified Clean Checks`, and
+`Auditor Notes`. Severity must reflect realistic impact and likelihood; routine
+admin-originated liveness failures are rated by the users and operations they
+block, not merely by who set the triggering parameter.
 
-```
-## Audit Report — [Module/Protocol Name]
-**Chain:** Sui | Aptos
-**Date:** [today]
-**Severity Summary:** X Critical, X High, X Medium, X Low, X Info
-**Triage Summary:** N candidates → X VALID, Y QUESTIONABLE, Z DISMISSED, W reclassified
+## Non-Negotiable Quality Rules
 
----
-
-### [SEVERITY-NNN] Finding Title
-
-| Field      | Value |
-|------------|-------|
-| Severity   | Critical / High / Medium / Low / Info |
-| Confidence | VALID (`confirmed`/`likely`) / QUESTIONABLE (`needs_review`) |
-| Location   | module_name.move, line N, function name |
-| Category   | [Access Control / Arithmetic / Resource Safety / etc.] |
-
-**Description:**
-Clear explanation of what the vulnerability is and why it exists.
-
-**Attack Scenario (PoC):**
-Step-by-step exploitation using Move-specific primitives with concrete values.
-
-**Verification:** Disproof dimensions challenged and passed.
-
-**Recommended Fix:**
-Concrete code-level recommendation. Show the fix, not just the concept.
-
----
-```
-
-After all findings, add `## Verified Clean Checks` (with DISMISSED findings and reasoning) and `## Auditor Notes` (code quality, centralization, upgrade risks).
-
----
-
-## Severity Reference
-
-| Level    | Criteria |
-|----------|----------|
-| Critical | Direct loss of funds, unauthorized minting, permanent protocol takeover |
-| High     | Significant fund loss under realistic conditions, major access control bypass |
-| Medium   | Partial fund loss, requires specific conditions, breaks core invariants |
-| Low      | Minor issues, best-practice violations, low-probability edge cases |
-| Info     | Code quality, gas inefficiency, documentation gaps, non-exploitable patterns |
-
-**Likelihood × Impact = Severity.** A theoretically catastrophic bug that requires a nation-state adversary is not Critical. A low-impact bug that's trivially exploitable is Medium, not Low.
-
-**Admin-origin latent user DoS:** Never dismiss a bug as "admin-only" or "trusted setup" if the admin action is routine (e.g., adding a reward program, setting a fee rate) and unprivileged users or liquidators are later bricked. Severity is based on who is blocked and what is blocked (fund lock, liquidation failure), not on who created the initial configuration. See common-move.md 12.2.
-
----
-
-## Important Rules
-
-- **Never hallucinate findings.** If you cannot point to exact code that is vulnerable, do not file a finding.
-- **Always cite exact file + line + function.** No vague references.
-- **Provide a PoC scenario for every High and Critical.** If you can't construct one, downgrade severity.
-- **AI output is not final.** Always flag that findings must be manually verified and tested before reporting.
-- **One contract at a time.** If given a multi-module codebase, audit module by module and flag cross-module interactions separately.
+- Cite exact file, line, function, and root cause; never invent code or behavior.
+- Require a concrete PoC or transaction sequence for every High/Critical finding;
+  downgrade when the path or impact cannot be demonstrated.
+- Keep source, test, production-state, and documentation evidence explicitly
+  tagged; documentation or mocks cannot independently dismiss a finding.
+- Do not modify audited production code unless the user explicitly requests a
+  fix; use removable tests or harnesses for local proofs.
+- State that AI-assisted findings require human verification before disclosure.

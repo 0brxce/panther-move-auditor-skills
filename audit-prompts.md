@@ -69,9 +69,10 @@ Use these prompts directly during manual review or with an AI assistant. Replace
 
 ---
 
-## Move Vulnerability Patterns Prompt Pack (from web3-sec-ai-prompts)
+## Move Vulnerability Patterns Prompt Pack
 
-Source: `common/move-patterns.md` in Panther Audits `web3-sec-ai-prompts`.
+The canonical checks for this repository live in `common-move.md` and the
+chain/DeFi reference files listed in `SKILL.md`.
 
 ### Purpose
 

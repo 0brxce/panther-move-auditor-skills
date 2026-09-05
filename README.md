@@ -6,8 +6,8 @@
 <p align="center">
   <a href="https://opensource.org/license/mit/"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="Contributions Welcome"></a>
-  <img src="https://img.shields.io/badge/version-3.10.0-blue.svg" alt="Version 3.10.0">
-  <img src="https://img.shields.io/badge/patterns-180%2B-red.svg" alt="180+ Patterns">
+  <img src="https://img.shields.io/badge/version-3.12.0-blue.svg" alt="Version 3.12.0">
+  <img src="https://img.shields.io/badge/patterns-220%2B-red.svg" alt="220+ Patterns">
   <img src="https://img.shields.io/badge/chains-Sui%20%7C%20Aptos-purple.svg" alt="Sui | Aptos">
 </p>
 
@@ -25,13 +25,14 @@ A portable skill for Codex and [Claude Code](https://docs.anthropic.com/en/docs/
 
 ## Features
 
-- **180+ vulnerability patterns** across chain-agnostic, Sui-specific, Aptos-specific, and DeFi checks
+- **220+ vulnerability patterns** across chain-agnostic, Sui-specific, Aptos-specific, and DeFi checks
 - **Auto-activates** on `.move` files — no setup, no slash commands needed
 - **8-phase audit workflow** — from codebase mapping to verified, triaged report
 - **Anti-false-positive engine** — confidence gating, evidence chains, FP catalog, and self-hallucination checks
 - **Build & test log analysis** — catches arithmetic aborts, assertion failures, and `#[expected_failure]` anomalies
+- **Production-surface parity** — verifies that annotations and auxiliary-tool labels do not accidentally leave public helpers in production bytecode
 - **Signal-based coverage routing** — detects protocol type and loads only relevant patterns
-- **DeFi deep-dive** — 90+ patterns covering staking, oracles, lending, liquidation, slippage, auctions, and signatures
+- **DeFi deep-dive** — 95 patterns covering staking, oracles, lending, liquidation, slippage, auctions, and signatures
 - **Semantic gap detection** — stale state, accumulator drift, cross-module accounting desync
 - **Real-world validated** — findings accepted into production codebases (see below)
 
@@ -141,7 +142,7 @@ Phase 2  Multi-perspective review (Attacker, Designer, Integrator, Symmetry,
      |
 Phase 3  Structured vulnerability scan — every check in every loaded reference file
      |
-Phase 4  DeFi & protocol-specific deep-dive (87 subcategory patterns)
+Phase 4  DeFi & protocol-specific deep-dive (85 subcategory patterns)
      |
 Phase 5  Semantic gap & stale-state scan (accumulators, checkpoints, cross-module drift)
      |
@@ -162,7 +163,7 @@ detected chain and protocol type, keeping the context window lean.
 
 | Category | File | Patterns |
 |----------|------|----------|
-| Chain-agnostic | `common-move.md` | Access control, arithmetic, resource safety, logic, input validation, cross-module, upgradeability, build/test analysis |
+| Chain-agnostic | `common-move.md` | Access control, arithmetic, resource safety, logic, input validation, cross-module, upgradeability, production-surface parity, build/test analysis |
 | Sui-specific | `sui-patterns.md` | SUI-01 to SUI-46 |
 | Aptos-specific | `aptos-patterns.md` | APT-01 to APT-25 |
 | DeFi cross-cutting | `defi-vectors.md` | DEFI-01 to DEFI-10 |
